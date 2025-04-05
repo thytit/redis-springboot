@@ -1,0 +1,190 @@
+sudo apt update
+sudo apt install openjdk-17-jdk -y
+java -version
+openjdk version "17.0.10" 2024-01-16
+
+update-alternatives --config java
+
+There are 2 choices for the alternative java (providing /usr/bin/java).
+
+  Selection    Path                                         Priority   Status
+------------------------------------------------------------
+* 0            /usr/lib/jvm/java-18-openjdk-amd64/bin/java   1811      auto mode
+  1            /usr/lib/jvm/java-17-openjdk-amd64/bin/java   1711      manual mode
+  2            /usr/lib/jvm/java-18-openjdk-amd64/bin/java   1811      manual mode
+
+Press <enter> to keep the current choice[*], or type selection number: 2
+
+
+echo 'export JAVA_HOME=/usr/lib/jvm/java-18-openjdk-amd64' | sudo tee -a /etc/environment
+
+source /etc/environment
+
+echo $JAVA_HOME
+
+
+They must use one between this two below: 
+Install Maven (Optional) if they use maven
+sudo apt install maven -y
+
+mvn -version
+
+Install Gradle (Optional)
+sudo apt install gradle -y
+
+gradle -v
+
+Run a Spring Boot Application
+./mvn spring-boot:run
+
+change application.properties port fist before run
+./mvn spring-boot:run -Dspring-boot.run.arguments="--server.port=8080"
+./mvnw spring-boot:run -Dspring-boot.run.arguments=--server.port=9090
+
+=============
+
+or
+./gradlew bootRun
+
+===========Build from source
+./gradlew publishToMavenLocal 
+./gradlew bootRun
+./gradlew build
+
+
+
+echo "export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64" | sudo tee -a /etc/environment
+echo "export PATH=\$JAVA_HOME/bin:\$PATH" | sudo tee -a /etc/environment
+
+source /etc/environment
+echo $JAVA_HOME
+
+
+sudo update-alternatives --config java
+
+
+
+========================
+1.Extract the ZIP File
+unzip your-project.zip -d your-project
+cd your-project
+
+2.Check for pom.xml
+Expected structure (simplified):
+your-project/
+│── src/
+│── pom.xml
+│── mvnw
+│── mvnw.cmd
+
+3.Grant Execute Permission (if needed)
+chmod +x mvnw
+
+4. Run the Application
+./mvnw spring-boot:run
+
+5. (Optional) Build and Run as JAR
+If you want to generate a JAR file and run it manually:
+./mvnw clean package
+java -jar target/*.jar
+
+Troubleshooting
+If ./mvnw is missing, install Maven (sudo apt install maven on Ubuntu or download from Apache Maven).
+If dependencies are missing, run
+./mvnw dependency:resolve
+
+If the project is using Maven but lacks the wrapper, you can add the Maven wrapper manually by running:
+mvn -N io.takari:maven:wrapper
+
+if mvnw Not Executable (on macOS/Linux)
+chmod +x mvnw
+
+3. Outdated Java Version
+java -version
+
+4. Network Issues (Dependency Downloads)
+Retry the command to see if it was a temporary network issue.
+If you encounter SSL issues, you might need to configure Maven to use a specific repository or proxy in the settings.xml file (located in ~/.m2/).
+Example of setting a proxy in settings.xml:
+
+xml
+Copy
+Edit
+<proxies>
+    <proxy>
+        <id>example-proxy</id>
+        <active>true</active>
+        <protocol>http</protocol>
+        <host>proxy.example.com</host>
+        <port>8080</port>
+        <username>proxyuser</username>
+        <password>somepassword</password>
+        <nonProxyHosts>www.google.com|*.example.com</nonProxyHosts>
+    </proxy>
+</proxies>
+
+5. Corrupted Local Repository
+
+If Maven’s local repository (~/.m2/repository/) has corrupted files, the build process might fail.
+
+Solution: Clear the local repository cache by deleting the specific dependency folder or the entire .m2/repository/ directory:
+
+sh
+Copy
+Edit
+rm -rf ~/.m2/repository/
+
+
+6. Incompatible Maven Version
+mvn -v
+sudo apt-get install maven
+7. Incorrect pom.xml Configuration
+
+Issues in your pom.xml, such as missing plugins, incorrect version numbers, or invalid configurations, can cause the build to fail.
+
+Solution:
+
+Validate the pom.xml file for errors:
+sh
+Copy
+Edit
+./mvnw validate
+./mvnw clean validate
+
+8. Spring Boot Plugin Configuration Issues
+
+If you’re using spring-boot:run or trying to build a JAR file and the spring-boot-maven-plugin is misconfigured, it could cause the application to fail to start or build.
+
+Solution:
+
+Check if the spring-boot-maven-plugin is correctly configured in your pom.xml. It should look something like this:
+xml
+Copy
+Edit
+<build>
+    <plugins>
+        <plugin>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-maven-plugin</artifactId>
+            <version>2.x.x</version> <!-- Ensure this matches your Spring Boot version -->
+        </plugin>
+    </plugins>
+</build>
+Make sure that the plugin version matches your Spring Boot version.
+
+
+9. Missing or Incorrect Application Properties
+Spring Boot often uses application.properties or application.yml for configuration. If these files are missing or misconfigured, your application may fail to start.
+
+Solution: Check if the application.properties (or application.yml) exists in the src/main/resources/ directory, and ensure it contains valid configurations.
+
+
+10. Port Conflicts
+If the application fails to start due to a port conflict, you might see an error like Address already in use.
+
+Solution: Change the port in your application.properties or application.yml:
+
+properties
+Copy
+Edit
+server.port=8081
