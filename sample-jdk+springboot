@@ -1,0 +1,167 @@
+Here's a step-by-step guide to setting up Redis 6.2.17, Java JDK 17, and Spring Boot on CentOS Stream 9.
+
+Step 1: Install Redis 6.2.17
+Update system packages:
+
+
+sudo dnf update -y
+Install build dependencies:
+
+
+sudo dnf install -y gcc make gcc-c++ kernel-devel tcl
+Download Redis 6.2.17:
+
+
+cd /usr/local/src
+sudo curl -O http://download.redis.io/releases/redis-6.2.17.tar.gz
+Extract and compile:
+
+
+sudo tar -xvzf redis-6.2.17.tar.gz
+cd redis-6.2.17
+sudo make
+sudo make install
+Configure Redis as a service:
+
+
+sudo cp utils/redis_init_script /etc/init.d/redis
+sudo chmod +x /etc/init.d/redis
+Create Redis configuration directory:
+
+
+sudo mkdir -p /etc/redis
+sudo cp redis.conf /etc/redis/redis.conf
+Modify Redis config file (/etc/redis/redis.conf):
+
+Change supervised no to:
+nginx
+Copy
+Edit
+supervised systemd
+Create a systemd service file:
+
+
+sudo tee /etc/systemd/system/redis.service <<EOF
+[Unit]
+Description=Redis In-Memory Data Store
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/redis-server /etc/redis/redis.conf
+ExecStop=/usr/local/bin/redis-cli shutdown
+Restart=always
+User=root
+Group=root
+
+[Install]
+WantedBy=multi-user.target
+EOF
+Enable and start Redis:
+
+
+sudo systemctl daemon-reload
+sudo systemctl enable --now redis
+Verify Redis is running:
+
+
+redis-cli ping
+Expected output: PONG
+
+Step 2: Install Java JDK 17
+Install JDK 17 using DNF:
+
+
+sudo dnf install -y java-17-openjdk
+Verify installation:
+
+
+java -version
+Expected output:
+
+nginx
+Copy
+Edit
+openjdk version "17.x.x" 202x-xx-xx
+Set Java home environment variable:
+
+
+echo "export JAVA_HOME=$(dirname $(dirname $(readlink -f $(which java))))" | sudo tee -a /etc/profile
+source /etc/profile
+Confirm JAVA_HOME:
+
+
+echo $JAVA_HOME
+Step 3: Install Spring Boot
+Install Maven (optional for Spring Boot development):
+
+
+sudo dnf install -y maven
+Verify Maven installation:
+
+
+mvn -version
+Create a Spring Boot Application:
+
+
+mkdir my-spring-app
+cd my-spring-app
+curl -s https://start.spring.io/starter.zip -d dependencies=web -d javaVersion=17 -d type=maven-project -o spring-boot-app.zip
+unzip spring-boot-app.zip -d .
+Build and run the Spring Boot application:
+
+
+./mvnw spring-boot:run
+Verify application is running: Open in browser: http://localhost:8080
+
+Step 4: Configure Redis for Spring Boot
+Add Redis dependency to pom.xml:
+
+
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-data-redis</artifactId>
+</dependency>
+
+
+Update application.properties:
+
+spring.redis.host=localhost
+spring.redis.port=6379
+Create a sample Redis repository in Java:
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class RedisController {
+
+    @Autowired
+    private StringRedisTemplate redisTemplate;
+
+    @GetMapping("/set")
+    public String setKey(@RequestParam String key, @RequestParam String value) {
+        redisTemplate.opsForValue().set(key, value);
+        return "Key set!";
+    }
+
+    @GetMapping("/get")
+    public String getKey(@RequestParam String key) {
+        return redisTemplate.opsForValue().get(key);
+    }
+}
+Rebuild and restart Spring Boot app:
+
+
+./mvnw spring-boot:run
+Test Redis integration:
+
+Set a key: http://localhost:8080/set?key=test&value=hello
+Retrieve key: http://localhost:8080/get?key=test
+Step 5: Enable Firewall Rules (if needed)
+
+sudo firewall-cmd --add-port=6379/tcp --permanent
+sudo firewall-cmd --add-port=8080/tcp --permanent
+sudo firewall-cmd --reload
